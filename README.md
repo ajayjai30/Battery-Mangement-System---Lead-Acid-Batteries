@@ -152,17 +152,6 @@ else:
 * **Metric:** Mean Absolute Error (MAE)
 * **MAE:** ~0.07 SOC
 * **Correlation:** > 0.99 compared to Coulomb Counting
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome!
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a pull request
-
 ---
 
 ## 📜 License
@@ -170,15 +159,3 @@ Contributions are welcome!
 This project is licensed under the **MIT License**.
 See the [LICENSE](LICENSE) file for details.
 
-```
-
----
-
-If you want, I can also:
-- Add **architecture diagrams**
-- Create a **requirements.txt**
-- Optimize it for **academic / IEEE-style projects**
-- Add **ESP32 / Raspberry Pi deployment instructions**
-
-Just tell me 👍
-```
