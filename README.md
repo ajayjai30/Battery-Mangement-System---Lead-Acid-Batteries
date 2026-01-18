@@ -13,6 +13,9 @@ This project implements an **Artificial Intelligence–based Battery Management 
 
 Unlike traditional BMS solutions that rely on simple voltage lookup tables (which are inaccurate under load), this system uses a **Long Short-Term Memory (LSTM)** neural network. It analyzes the *temporal history* of **Voltage**, **Current**, and **Temperature**, capturing battery hysteresis and internal resistance effects to achieve **high-accuracy SOC prediction (>99% correlation)**.
 
+## 📌 Kaggle-Notebook: 
+  [Click-Here for Notebook](https://www.kaggle.com/code/ajayjaikrishnan/battery-management-system)
+
 ### 🔄 Hybrid IoT Architecture
 
 1. **Sensors** push raw data to the **ThingSpeak Cloud**
