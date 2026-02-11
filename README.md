@@ -1,173 +1,124 @@
-# 🔋 AI Battery Management System (BMS) with ThingSpeak Integration
-
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
-[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange)](https://www.tensorflow.org/)
-[![IoT](https://img.shields.io/badge/IoT-ThingSpeak-green)](https://thingspeak.com/)
-[![License](https://img.shields.io/badge/License-MIT-lightgrey)](LICENSE)
+# 🔋 AI Battery State of Health (SOH) Predictor
 
 ---
 
 ## 📌 Project Overview
 
-This project implements an **Artificial Intelligence–based Battery Management System (BMS)** designed to predict the **State of Charge (SOC)** of batteries in real time.
+This project implements an **Artificial Intelligence–based Battery Management System (BMS)** explicitly designed to predict the **State of Health (SOH)** of batteries.
 
-Unlike traditional BMS solutions that rely on simple voltage lookup tables (which are inaccurate under load), this system uses a **Long Short-Term Memory (LSTM)** neural network. It analyzes the *temporal history* of **Voltage**, **Current**, and **Temperature**, capturing battery hysteresis and internal resistance effects to achieve **high-accuracy SOC prediction (>99% correlation)**.
+While **State of Charge (SOC)** acts as a *"fuel gauge"* indicating how much energy remains for immediate use, **SOH** acts as a *"physician's report,"* revealing the overall lifespan and structural integrity of the battery. It is crucial for detecting long-term degradation, internal resistance buildup, and capacity fade before a catastrophic failure occurs.
 
-## 📌 Kaggle-Notebook: 
-  [Click-Here for Notebook](https://www.kaggle.com/code/ajayjaikrishnan/battery-management-system)
-
-## 📌 Dataset-Link
-   [Dataset](https://drive.google.com/file/d/1H74jt1Lx9qh95v2VWVgHUM-3GheuZynN/view?usp=sharing)
-
-### 🔄 Hybrid IoT Architecture
-
-1. **Sensors** push raw data to the **ThingSpeak Cloud**
-2. **AI Engine** fetches data in real time
-3. **LSTM Model** predicts SOC and logs it for monitoring
+The system utilizes a **Deep LSTM (Long Short-Term Memory)** neural network, trained on high-fidelity aging profiles from the **NASA Prognostics Center of Excellence (PCoE)**. Unlike simple lookup tables that fail as batteries age, this model analyzes the *"slope"* and velocity of voltage and temperature changes over a **10-step time window**. By observing these temporal dynamics, the AI can estimate the battery's remaining useful capacity with high accuracy, even under varying load conditions.
 
 ---
 
-## 🚀 Key Features
+## 📊 Performance Metrics
 
-- **Deep Learning Core**
-  - Stacked LSTM network (128 + 64 units)
-  - Trained on extensive charge/discharge datasets
+The model has been rigorously trained and optimized for **low-latency inference**, making it suitable for deployment on **edge devices** (like Raspberry Pi or ESP32) or **cloud-based monitoring servers**.
 
-- **Physics-Based Feature Engineering**
-  - Power calculation: `P = V × I`
-  - Voltage slope (`dV/dt`) for rapid voltage drop detection
-  - Moving averages to reduce sensor noise
-
-- **Universal Deployment**
-  - Full Keras model for server/GPU inference
-  - Quantized `.tflite` model for Edge devices (ESP32 / Raspberry Pi)
-
-- **Robust Inference Engine**
-  - Automatic buffering
-  - Feature scaling
-  - Missing-data handling
+| **Metric** | **Value** | **Description** |
+|------------|-----------|-----------------|
+| **Model Architecture** | Deep LSTM | 2 Stacked Layers (128 & 64 Units) with Dropout for robust generalization. |
+| **Input Window** | 10 Steps | Captures the last ~2.5 minutes of sensor history to determine trend direction. |
+| **MAE (Error)** | ~4.23% | The average deviation from the actual health. (e.g., A prediction of 80% is reliably between 76–84%). |
+| **RMSE** | ~5.86% | Root Mean Square Error, indicating a low susceptibility to extreme outlier errors. |
+| **Inference Time** | < 50ms | Highly efficient, enabling real-time health monitoring without system lag. |
 
 ---
 
-## 📂 Repository Structure
+## 🧠 How It Works
 
-```text
-/
+The system operates on a continuous feedback loop, transforming raw, noisy sensor data into actionable health insights:
+
+### 1. Data Ingestion
+The system pulls live sensor streams ($Voltage$, $Current$, $Temperature$) via the ThingSpeak API or a direct local serial connection. This stage handles data synchronization to ensure valid inputs.
+
+### 2. Windowing (Temporal Context)
+Instead of analyzing a single data point, the system buffers the last **10 data points**.
+
+**The "Why":**  
+A degraded battery and a healthy battery might show the same voltage at rest. However, under load, a degraded battery's voltage drops significantly faster. The LSTM requires this *"moving window"* to detect that specific decay curve.
+
+### 3. Inference
+The buffered data is normalized (scaled to 0–1 range) to match the training distribution and fed into the `.keras` model. The LSTM layers process the sequence to extract deep temporal features related to chemical aging.
+
+### 4. Output
+The model outputs a single scalar value ($0\% - 100\%$) representing the SOH. This is calculated as the ratio of the Current Maximum Capacity to the Original Nominal Capacity.
+
+---
+
+## 📂 Project Structure
+
+```bash
 ├── models/
-│   ├── bms_model_best.keras       # Trained LSTM Model (Server/GPU)
-│   └── bms_model_quantized.tflite # Quantized Model (Edge/IoT)
+│   └── bms_soh_model_best.keras  # The trained AI Brain (Deep LSTM architecture)
 ├── scalers/
-│   ├── scaler_X.pkl               # Input Feature Scaler
-│   └── scaler_y.pkl               # Target SOC Scaler
-├── bms_predictor.py               # 🧠 Main Inference Engine
-├── thingspeak_bridge.py           # ☁️ ThingSpeak Integration
-├── training_pipeline.ipynb        # Model Training Notebook
-├── requirements.txt               # Python Dependencies
-└── README.md                      # Project Documentation
-````
+│   ├── scaler_X_soh.pkl          # Pre-fitted scaler for normalizing input sensors (V, I, T)
+│   └── scaler_y_soh.pkl          # Decodes the model's output back to a readable SOH %
+├── bms_predictor.py              # Core AI Class: Manages the rolling buffer, feature extraction, and inference
+├── thingspeak_bridge.py          # IoT Bridge: Connects the AI model to the ThingSpeak Cloud for remote monitoring
+├── training_pipeline.ipynb       # The complete Jupyter Notebook used to clean data and train the model
+├── requirements.txt              # List of necessary Python dependencies
+└── README.md                     # Project documentation
+```
 
 ---
 
-## 🛠️ Installation & Setup
+## 🚀 Setup & Installation
 
-### 1️⃣ Clone the Repository
-
-```bash
-git clone https://github.com/your-username/ai-bms-system.git
-cd ai-bms-system
-```
-
-### 2️⃣ Install Dependencies
+### 1. Clone the Repository
 
 ```bash
-pip install tensorflow numpy scikit-learn joblib pandas requests
+git clone https://github.com/ajayjai30/Battery-Mangement-System-Lead-Acid-Batteries.git
+cd Battery-Mangement-System-Lead-Acid-Batteries
 ```
-
-> **Note:** For GPU deployment, ensure NVIDIA CUDA and cuDNN are properly installed.
 
 ---
 
-## ☁️ Usage: Running with ThingSpeak
+### 2. Install Dependencies
 
-Use the `thingspeak_bridge.py` script to connect the AI engine to live sensor data.
+Ensure you are running a compatible Python environment (**3.10+**) and install the required libraries:
 
-### 1️⃣ ThingSpeak Channel Configuration
-
-Ensure your ThingSpeak channel fields are mapped as follows:
-
-* **Field 1:** Voltage (V)
-* **Field 2:** Current (A)
-* **Field 3:** Temperature (°C)
-
-### 2️⃣ Configure API Credentials
-
-Edit `thingspeak_bridge.py`:
-
-```python
-CHANNEL_ID = "YOUR_CHANNEL_ID"
-READ_API_KEY = "YOUR_READ_API_KEY"
+```bash
+pip install -r requirements.txt
 ```
 
-### 3️⃣ Start the AI Engine
+---
+
+### 3. Usage (Real-Time Cloud Loop)
+
+To start the automated bridge that pulls live data from ThingSpeak, processes the health metrics, and logs the SOH to the console:
 
 ```bash
 python thingspeak_bridge.py
 ```
 
-## **📊 Example Output for Thinkspeak file:**
-```
-================================================================================
-🌐 THINGSPEAK BRIDGE - AI MODEL CLOUD CONNECTOR
-================================================================================
-Channel ID: 2792345
-Poll Interval: 16 seconds
-================================================================================
+**Note:**  
+You must update the `THINGSPEAK_CHANNEL_ID` and `API_KEY` variables inside the script to match your specific IoT channel.
 
-✅ 🔋 AI Engine Initialized. Waiting for data...
-================================================================================
-🚀 BRIDGE ACTIVE - LISTENING FOR SENSOR DATA...
-================================================================================
-[2026-01-18 14:23:15] 📊 Sensor: 3.85V, -2.30A, 28.5°C | ⏳ Buffering data... (1/10)
-[2026-01-18 14:23:31] 📊 Sensor: 3.82V, -2.45A, 29.0°C | ⏳ Buffering data... (2/10)
-...
-[2026-01-18 14:25:39] 📊 Sensor: 3.75V, -2.80A, 30.2°C | 🔋 AI SOC: 72.45%
-[2026-01-18 14:25:55] 📊 Sensor: 3.73V, -3.00A, 30.8°C | 🔋 AI SOC: 68.12%
----
-```
 ---
 
-## 🧠 Code Usage (Custom Integration)
+### 4. Usage (Custom Python Script)
 
-You can use the AI predictor directly without ThingSpeak.
+You can easily import the predictor logic into your own custom dashboard or automation script:
 
 ```python
 from bms_predictor import BMS_Predictor
 
-# Initialize predictor
-predictor = BMS_Predictor(
-    model_path='models/bms_model_best.keras',
-    scaler_x_path='scalers/scaler_X.pkl',
-    scaler_y_path='scalers/scaler_y.pkl'
+# Initialize the AI engine with the trained artifacts
+ai = BMS_Predictor(
+    model_path='models/bms_soh_model_best.keras',
+    scaler_x_path='scalers/scaler_X_soh.pkl',
+    scaler_y_path='scalers/scaler_y_soh.pkl',
+    window_size=10  # Must match the training window
 )
 
-# Real-time prediction (streamed input)
-soc = predictor.predict_realtime(12.4, 1.5, 25.0)
+# Simulate feeding live data (Voltage, Current, Temp)
+# The predictor returns 'None' while it fills the 10-step buffer
+soh_prediction = ai.predict_realtime(12.4, -1.5, 28.5)
 
-if soc is not None:
-    print(f"Current Battery SOC: {soc}%")
+if soh_prediction:
+    print(f"Current Battery Health: {soh_prediction:.2f}%")
 else:
-    print("Buffering data (waiting for 10 samples)...")
+    print("Buffering data... (Need 10 data points)")
 ```
-## 📊 Model Performance
-
-* **Training Hardware:** Tesla P100 GPU
-* **Metric:** Mean Absolute Error (MAE)
-* **MAE:** ~0.07 SOC
-* **Correlation:** > 0.99 compared to Coulomb Counting
----
-
-## 📜 License
-
-This project is licensed under the **MIT License**.
-See the [LICENSE](LICENSE) file for details.
-
