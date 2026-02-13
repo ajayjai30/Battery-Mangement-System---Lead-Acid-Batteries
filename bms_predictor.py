@@ -41,7 +41,7 @@ class BMSPredictor:
             return
 
         # 3. Memory & Smoothing
-        self.seq_length = 100 # Must match the training sequence length
+        self.seq_length = 10 # Must match the training sequence length
         self.data_buffer = deque(maxlen=self.seq_length) # Stores raw features for LSTM
         self.soh_smoothing = deque(maxlen=20) # Average last 20 predictions for stability
         
@@ -148,3 +148,4 @@ class BMSPredictor:
         self.soh_smoothing.clear()
         self.cumulative_energy = 0.0
         print("Dataset history reset.")
+
